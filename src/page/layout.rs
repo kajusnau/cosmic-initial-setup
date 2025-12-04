@@ -238,8 +238,10 @@ fn copy_dir(src: &Path, dst: &Path) {
 
             if let Ok(meta) = entry.metadata() {
                 if meta.is_dir() {
+                    tracing::debug!("meta is dir, queuing copy");
                     dirs_to_copy.push_back((src_path, dst_path));
                 } else if meta.is_file() {
+                    tracing::debug!("copying file from {:?} to {:?}", src_path, dst_path);
                     // We read and then write the contents to not preserve any metadata.
                     let copy_result =
                         std::fs::read(&src_path).and_then(|data| std::fs::write(&dst_path, &data));
@@ -260,6 +262,7 @@ fn apply_layout(path: &Path) {
 
     for entry in layout_dir.filter_map(Result::ok) {
         let Ok(meta) = entry.metadata() else {
+            tracing::debug!("failed to get metadata for layout entry");
             continue;
         };
 
@@ -277,8 +280,11 @@ fn apply_layout(path: &Path) {
             // Delete any existing config
             _ = std::fs::remove_dir_all(&config_dest_path);
 
+            tracing::debug!("copying:\nSRC: {:?}\nDST: {:?}", path, config_dest_path);
             // Copy layout to local config
             copy_dir(&path, &config_dest_path);
+        } else {
+            tracing::debug!("skipping non-directory layout entry: {:?}", entry.path());
         }
     }
 
